@@ -3,7 +3,9 @@ html {
     margin: 0;
     padding: 0;
     width: 100%;
+    min-height: 100%;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 body { 
@@ -12,18 +14,21 @@ body {
     font-family: 'MS Gothic', 'Courier New', monospace; 
     margin: 0; 
     padding: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: 100svh;
+    height: 100vh;
+    height: 100dvh;
+    height: 100svh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;   /* PCでゲーム全体を左右中央に */
-    height: 100vh;
-    height: 100svh;
-    overflow: hidden;
-    position: fixed;
     width: 100%;
     box-sizing: border-box;
 }
 
-/* ゲーム画面（上部）：PCで幅上限＋中央寄せ */
+/* ゲーム画面（上部）：PCで幅上限＋中央寄せ、safe-area対応 */
 #game-container { 
     flex: 1;
     width: 100%;
@@ -35,11 +40,21 @@ body {
     align-items: center;
     position: relative;
     overflow: hidden;
-    padding-top: env(safe-area-inset-top);
-    padding-left: 0;
-    padding-right: 0;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
     box-sizing: border-box;
     transition: background-color 0.5s ease;
+}
+
+/* ゲーム内画像：携帯でも確実に表示（はみ出し防止・アスペクト維持） */
+#game-container img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
 }
 
 /* タイトル画面の時だけoverflowをvisibleに */
@@ -145,6 +160,13 @@ body {
     transition: opacity 0.2s ease-in;
 }
 
+/* 戦闘画面はコンテナ全体を使い、中央揃えを崩さない（敵画像・ログ・コマンドを収める） */
+#game-container > #battle-screen.active {
+    align-self: stretch;
+    height: 100%;
+    min-height: 0;
+}
+
 /* ウィンドウデザイン（FF風） */
 .ff-window {
     background: linear-gradient(180deg, #00008b 0%, #000044 100%);
@@ -232,8 +254,8 @@ body {
     }
     
     #game-container {
-        padding-left: 0;
-        padding-right: 0;
+        padding-left: env(safe-area-inset-left, 0);
+        padding-right: env(safe-area-inset-right, 0);
     }
     
     #map-grid {
@@ -248,8 +270,86 @@ body {
     }
     
     #game-container {
-        padding-left: 0;
-        padding-right: 0;
+        padding-left: env(safe-area-inset-left, 0);
+        padding-right: env(safe-area-inset-right, 0);
+    }
+}
+
+/* モバイル・iOS：画面高さが短いとき戦闘レイアウトを圧縮（上下ログ・コマンド必ず見える） */
+@media (max-height: 700px) {
+    #battle-log {
+        height: 52px;
+        min-height: 44px;
+        max-height: 60px;
+        font-size: 12px;
+        padding: 4px;
+    }
+    #battle-screen .battle-ui {
+        height: 160px;
+        min-height: 150px;
+        max-height: 170px;
+        padding: 4px;
+        gap: 4px;
+    }
+    #battle-screen .monster-sprite {
+        font-size: min(100px, 18vw);
+    }
+    #battle-screen .monster-sprite img {
+        max-height: min(100px, 20vh);
+    }
+    #battle-screen .enemy-area {
+        min-height: 0;
+        max-height: 120px;
+    }
+    .command-box li {
+        padding: 5px 4px;
+        font-size: 13px;
+    }
+    .status-box {
+        font-size: 11px;
+    }
+}
+
+/* さらに縦が短い端末（iOS Plus等） */
+@media (max-height: 580px) {
+    #battle-log {
+        height: 44px;
+        min-height: 40px;
+        max-height: 52px;
+        font-size: 11px;
+    }
+    #battle-screen .battle-ui {
+        height: 140px;
+        min-height: 130px;
+        max-height: 150px;
+    }
+    #battle-screen .monster-sprite {
+        font-size: min(72px, 14vw);
+    }
+    #battle-screen .monster-sprite img {
+        max-height: min(80px, 16vh);
+    }
+    #battle-screen .enemy-area {
+        max-height: 96px;
+    }
+    .command-box li {
+        padding: 4px 3px;
+        font-size: 12px;
+    }
+}
+
+/* 携帯・タッチ：画像が確実に映るようコンテナ最小サイズを確保 */
+@media (max-width: 768px) {
+    #battle-screen .monster-sprite {
+        min-height: 40px;
+    }
+    #battle-screen .monster-sprite img {
+        min-width: 16px;
+        min-height: 16px;
+    }
+    .cat-npc-container .cat-npc-frame {
+        min-width: 16px;
+        min-height: 16px;
     }
 }
 
@@ -378,6 +478,8 @@ body {
     position: relative;
     width: 80%;
     height: 80%;
+    min-width: 24px;
+    min-height: 24px;
 }
 .cat-npc-container .cat-npc-frame {
     position: absolute;
@@ -385,9 +487,12 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
     opacity: 0;
     animation: cat-sprite-step 0.4s infinite;
+    display: block;
 }
 .cat-npc-container .cat-npc-f1 { animation-delay: 0s; }
 .cat-npc-container .cat-npc-f2 { animation-delay: 0.1s; }
@@ -781,10 +886,12 @@ body {
     overflow: visible;
 }
 
-/* 主人公SVGコンテナ（参考HTMLの動作に合わせる） */
+/* 主人公SVGコンテナ（参考HTMLの動作に合わせる）・携帯で確実に表示 */
 .hero-svg-container {
     width: 100%;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -805,6 +912,8 @@ body {
     height: 100%;
     max-width: 100%;
     max-height: 100%;
+    min-width: 0;
+    min-height: 0;
 }
 
 /* 主人公のアニメーション（上下に軽く揺れる - 参考HTMLのbobアニメーション） */
@@ -813,10 +922,14 @@ body {
     50% { transform: translateY(-4px); }
 }
 
-/* 犬のSVGアニメーション */
+/* 犬のSVGアニメーション・携帯で確実に表示 */
 .dog-svg {
     width: 100%;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
     filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3));
 }
 
@@ -832,17 +945,25 @@ body {
     100% { transform: rotate(0deg); }
 }
 
-/* 猿のSVGアニメーション */
+/* 猿のSVGアニメーション・携帯で確実に表示 */
 .monkey-svg {
     width: 100%;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
     filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3));
 }
 
-/* きじのSVGアニメーション */
+/* きじのSVGアニメーション・携帯で確実に表示 */
 .bird-svg {
     width: 100%;
     height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
     filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3));
     image-rendering: pixelated;
     shape-rendering: crispEdges;
@@ -898,6 +1019,10 @@ body {
 
 .cell.obj-npc {
     filter: drop-shadow(0 0 6px rgba(255, 255, 200, 0.7));
+}
+
+.cell.obj-ally {
+    filter: drop-shadow(0 0 6px rgba(255, 220, 150, 0.7));
 }
 
 .cell.obj-village-entrance {
@@ -1153,6 +1278,11 @@ body {
     flex-direction: column;
 }
 
+#battle-screen #monster-name,
+#battle-screen .enemy-hp-bar {
+    flex-shrink: 0;
+}
+
 #battle-screen .monster-sprite { 
     flex: 1;
     min-height: 0;
@@ -1161,23 +1291,28 @@ body {
     justify-content: center;
     width: 100%;
     overflow: hidden;
-    font-size: 160px; 
+    font-size: min(160px, 20vw);
     text-shadow: 0 0 15px rgba(255,0,0,0.5);
 }
 
-/* 戦闘画面の敵画像のみ「戦闘ログの下〜ステータス上の間」に収める */
+/* 戦闘画面の敵画像：「戦闘ログの下〜ステータス上の間」に収め、ゲームレイアウト尊重 */
+/* 200px画像でもオープニング・フィールドの中央揃えを崩さず、はみ出し防止・携帯でも確実に表示 */
 #battle-screen .monster-sprite img {
+    display: block;
     max-width: 100%;
-    max-height: 100%;
+    max-height: min(200px, 42vh);
     width: auto;
     height: auto;
+    min-width: 1px;
+    min-height: 1px;
     object-fit: contain;
 }
 
 #battle-screen .battle-ui { 
     display: flex; 
-    height: 240px; 
-    min-height: 240px;
+    height: 220px; 
+    min-height: 200px;
+    max-height: 240px;
     gap: 5px; 
     padding: 5px; 
     flex-shrink: 0;
@@ -1229,7 +1364,9 @@ body {
 #battle-log { 
     flex-shrink: 0;
     width: 95%; 
-    height: 80px; 
+    height: 72px; 
+    min-height: 56px;
+    max-height: 80px;
     margin: 5px auto; 
     background: rgba(0,0,0,0.8); 
     border: 1px solid #fff; 
@@ -1477,11 +1614,13 @@ body {
 }
 
 .levelup-text {
-    font-size: 56px;
+    font-size: min(56px, 10vw);
     font-weight: bold;
     color: #00ffff;
     text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
     animation: levelupAnimation 2.5s ease-out forwards;
+    white-space: nowrap;
+    padding: 0 12px;
 }
 
 @keyframes levelupAnimation {
@@ -1524,6 +1663,22 @@ body {
     100% {
         opacity: 0;
         transform: translateY(-20px);
+    }
+}
+
+/* 携帯：レベルアップテキストを1行に収める */
+@media (max-width: 480px) {
+    .levelup-text {
+        font-size: min(32px, 9vw);
+    }
+}
+@media (max-width: 360px) {
+    .levelup-text {
+        font-size: 26px;
+    }
+    .levelup-stats {
+        font-size: 18px;
+        margin-top: 12px;
     }
 }
 
