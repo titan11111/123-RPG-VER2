@@ -1066,10 +1066,12 @@ function drawMap() {
                 `;
                 cell.classList.add('hero');
             } else if (type >= TILE.ALLY_DOG && type <= TILE.ALLY_MONKEY) {
-                // 仲間キャラクター（まだパーティに加わっていない場合のみ表示）
+                // 仲間キャラクター（まだパーティに加わっていない場合のみ表示）→ SVGで表示
                 const ally = allyData[type];
                 if (!party.find(m => m.name === ally.name)) {
-                    cell.innerText = ally.img;
+                    const uniqueId = x * 100 + y;
+                    cell.innerHTML = generateAllySVG(ally.name, 'down', uniqueId);
+                    cell.classList.add('obj-ally');
                 }
             } else {
                 // 仲間が描画されたセルは上書きしない
@@ -1480,21 +1482,11 @@ function handleGoldenCatEvent(x, y, map) {
     // モーダルを表示
     showYesNoModal(message, (yes) => {
         if (yes) {
+            // はい → 124には行かず、そのまま冒険を続ける
             showAlert("そうだニャ❤️");
-            // クリア済みフラグをリセット（再挑戦のため）
-            if (isCleared) {
-                localStorage.removeItem('rpgGoldenCatCleared');
-            }
-            setTimeout(() => {
-                transferToOtherWorld();
-            }, 1000);
         } else {
-            showAlert("シャーアアアア！！！！");
-            // 主人公の移動を無効化
-            gameState.heroMovementDisabled = true;
-            setTimeout(() => {
-                transferToOtherWorld();
-            }, 5000);
+            // いいえ → 即時に 124-inveder neko へ飛ぶ
+            transferToOtherWorld();
         }
     });
 }

@@ -282,29 +282,27 @@ function checkReturnFromOtherWorld() {
     const waitingForReturn = localStorage.getItem('rpgWaitingForReturn');
     const savedState = localStorage.getItem('rpgSavedState');
     
-    // 復帰処理を実行する条件：
-    // 1. フラグが'true'である
-    // 2. 保存された状態が存在する
-    // 3. メイン画面が表示されている（タイトル画面では実行しない）
-    if (waitingForReturn === 'true' && savedState) {
-        // ゲームが開始されているか確認（メイン画面が表示されているか）
-        const mainScreen = document.getElementById('main-screen');
-        const startScreen = document.getElementById('start-screen');
-        
-        // タイトル画面の場合は、復帰処理を実行しない（Aボタンで開始時に処理される）
-        if (startScreen && startScreen.classList.contains('active')) {
-            return;
-        }
-        
-        // メイン画面が表示されている場合のみ復帰処理を実行
-        if (mainScreen && mainScreen.classList.contains('active')) {
-            // 少し待ってから復帰処理を実行（ゲーム初期化を待つ）
-            setTimeout(() => {
-                if (typeof returnFromOtherWorld === 'function') {
-                    returnFromOtherWorld();
-                }
-            }, 1000);
-        }
+    // 復帰処理を実行する条件：フラグ'true'かつ保存状態あり
+    if (waitingForReturn !== 'true' || !savedState) return;
+    
+    const mainScreen = document.getElementById('main-screen');
+    const startScreen = document.getElementById('start-screen');
+    
+    // タイトル画面の場合：124クリア後の復帰なので、自動でメインへ移し金の猫位置でイベント開始
+    if (startScreen && startScreen.classList.contains('active')) {
+        if (typeof stopAllBGM === 'function') stopAllBGM();
+        showScreen('main-screen');
+        setTimeout(() => {
+            if (typeof returnFromOtherWorld === 'function') returnFromOtherWorld();
+        }, 1000);
+        return;
+    }
+    
+    // メイン画面表示中の場合
+    if (mainScreen && mainScreen.classList.contains('active')) {
+        setTimeout(() => {
+            if (typeof returnFromOtherWorld === 'function') returnFromOtherWorld();
+        }, 1000);
     }
 }
 
