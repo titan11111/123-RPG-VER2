@@ -1,3 +1,23 @@
+/* ========== iOS・レスポンシブ ==========
+ * - touch-action: manipulation … body, #control-panel, .pad-btn, .circle-btn, モーダルボタン（ダブルタップ拡大・遅延防止）
+ * - -webkit-tap-highlight-color: transparent … タップ時のハイライト削除
+ * - env(safe-area-inset-*) … ノッチ・ホームインジケータ余白
+ * - 縦/横メディアクエリ … orientation: portrait | landscape, max-height: 700px/580px で戦闘UI圧縮
+ * ======================================== */
+
+/* ========== テーマ変数（共通色・サイズ） ========== */
+:root {
+    --ff-bg-top: #00008b;
+    --ff-bg-bottom: #000044;
+    --ff-border: #eee;
+    --ff-shadow: rgba(0, 150, 255, 0.3);
+    --control-bg: #ccc;
+    --control-border: #999;
+    --btn-bg: #444;
+    --btn-shadow: #000;
+    --max-content: 620px;
+}
+
 /* 全体設定（PCで左右中央がずれないよう html もリセット） */
 html {
     margin: 0;
@@ -8,11 +28,11 @@ html {
     overflow: hidden;
 }
 
-body { 
-    background-color: #000; 
-    color: #fff; 
-    font-family: 'MS Gothic', 'Courier New', monospace; 
-    margin: 0; 
+body {
+    background-color: #000;
+    color: #fff;
+    font-family: 'MS Gothic', 'Courier New', monospace;
+    margin: 0;
     padding: 0;
     min-height: 100vh;
     min-height: 100dvh;
@@ -23,23 +43,27 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: center;   /* PCでゲーム全体を左右中央に */
+    align-items: center;
     width: 100%;
     box-sizing: border-box;
+    /* iOS Safari: ダブルタップ拡大・遅延防止 */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* ゲーム画面（上部）：PCで幅上限＋中央寄せ、safe-area対応 */
-#game-container { 
+/* ゲーム画面（上部）：PCで幅上限＋水平中央寄せ、中央は縦方向レイアウト */
+#game-container {
     flex: 1;
     width: 100%;
-    max-width: 620px;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: var(--max-content);
+    margin: 0 auto;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     position: relative;
     overflow: hidden;
+    min-height: 0;
     padding-top: env(safe-area-inset-top, 0);
     padding-left: env(safe-area-inset-left, 0);
     padding-right: env(safe-area-inset-right, 0);
@@ -47,13 +71,15 @@ body {
     transition: background-color 0.5s ease;
 }
 
-/* ゲーム内画像：携帯でも確実に表示（はみ出し防止・アスペクト維持） */
+/* ゲーム内画像：中央寄せ・はみ出し防止・アスペクト維持 */
 #game-container img {
     display: block;
     max-width: 100%;
     max-height: 100%;
     width: auto;
     height: auto;
+    margin-left: auto;
+    margin-right: auto;
     object-fit: contain;
 }
 
@@ -104,55 +130,137 @@ body {
     background: radial-gradient(ellipse at center, #2a4a3a 0%, #1a3a2a 50%, #0a2a1a 100%);
 }
 
-.screen { 
-    display: none; 
-    width: 100%; 
-    max-width: 620px; 
+/* 壁から差し込む光（室内・町中などで窓から光が入る表現） */
+.light-through-wall {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    /* 左上の窓から差し込む光の筋を複数のグラデーションで表現 */
+    background:
+        linear-gradient(165deg, rgba(255, 248, 220, 0.22) 0%, transparent 35%),
+        linear-gradient(155deg, rgba(255, 250, 205, 0.18) 0%, transparent 40%),
+        linear-gradient(175deg, rgba(255, 245, 200, 0.14) 0%, transparent 45%);
+    opacity: 0.85;
+    mix-blend-mode: overlay;
+}
+
+/* 室内フィールドのときだけ光を表示 */
+#game-container.field-town_inside .light-through-wall,
+#game-container.field-tropical_village .light-through-wall {
+    display: block;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    max-width: var(--max-content);
     text-align: center; 
     padding: 10px; 
     box-sizing: border-box; 
     opacity: 0;
     transition: opacity 0.3s ease-in;
     position: relative;
-    overflow: hidden; /* デフォルトはhidden */
-    margin: 0 auto; /* 中央揃え */
+    overflow: hidden;
+    margin: 0 auto;
 }
 
+/* 表示中は縦方向・中央揃えで戦闘/マップ/タイトルを統一 */
 .active { 
-    display: block !important; 
+    display: flex !important; 
+    flex-direction: column;
+    align-items: center;
     opacity: 1;
-    margin: 0 auto; /* 中央揃えを確実に */
+    margin: 0 auto;
 }
 
-/* 表示中の画面のみ：幅と左右中央を詳細度高く明示（PC含む左ズレ防止） */
 #game-container > .screen.active {
-    flex: 0 0 auto;   /* PCで伸縮に巻き込まれない */
+    flex: 0 0 auto;
     width: 100%;
-    max-width: 620px;
+    max-width: var(--max-content);
     margin-left: auto;
     margin-right: auto;
 }
 
-/* タイトル画面：中央寄せ・シンプル */
+/* タイトル画面：メインタイトルを画面ど真ん中に・派手に（子供向け） */
 #start-screen.active {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 #start-screen .ff-window {
     text-align: center;
     max-width: 90%;
+    padding: 24px 20px;
 }
 
 #start-screen .ff-window h1 {
-    margin: 0.5em 0;
-    font-size: 1.5em;
+    margin: 0.4em 0 0.3em;
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
     font-weight: bold;
+    letter-spacing: 0.08em;
+    color: #fff;
+    text-shadow:
+        0 0 10px rgba(255, 215, 0, 0.9),
+        0 0 20px rgba(255, 180, 0, 0.6),
+        0 2px 4px rgba(0, 0, 0, 0.8),
+        2px 2px 0 #8b4513;
+    animation: titleGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes titleGlow {
+    0%, 100% { text-shadow: 0 0 10px rgba(255, 215, 0, 0.9), 0 0 20px rgba(255, 180, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8), 2px 2px 0 #8b4513; }
+    50% { text-shadow: 0 0 16px rgba(255, 235, 100, 1), 0 0 28px rgba(255, 200, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.8), 2px 2px 0 #8b4513; }
 }
 
 #start-screen .ff-window p {
-    margin: 0.3em 0;
+    margin: 0.35em 0;
+    font-size: 1.05em;
+}
+
+/* オープニング用キャラ画像（犬・猿・キジ）：#start-screen 内のみ・他画面・他要素に影響しない */
+#start-screen .opening-characters {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: clamp(8px, 3vw, 24px);
+    width: 100%;
+    max-width: 90%;
+    flex-shrink: 0;
+    margin: 10px 0;
+    padding: 0 10px;
+    box-sizing: border-box;
+    pointer-events: none;
+    position: relative;
+    z-index: 0;
+}
+
+#start-screen .opening-characters .opening-chara {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(28vw, 140px);
+    max-height: min(22vh, 120px);
+    object-fit: contain;
+    object-position: bottom;
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* キジは羽を広げた横長なので少し高さを多めに */
+#start-screen .opening-characters .opening-chara-kiji {
+    max-height: min(24vh, 130px);
 }
 
 /* 戦闘画面への遷移をよりスムーズに */
@@ -169,10 +277,10 @@ body {
 
 /* ウィンドウデザイン（FF風） */
 .ff-window {
-    background: linear-gradient(180deg, #00008b 0%, #000044 100%);
-    border: 3px solid #eee;
+    background: linear-gradient(180deg, var(--ff-bg-top) 0%, var(--ff-bg-bottom) 100%);
+    border: 3px solid var(--ff-border);
     border-radius: 8px;
-    box-shadow: inset 0 0 5px #000, 0 0 10px rgba(0, 150, 255, 0.3);
+    box-shadow: inset 0 0 5px #000, 0 0 10px var(--ff-shadow);
     padding: 10px;
     box-sizing: border-box;
     position: relative;
@@ -206,21 +314,61 @@ body {
 }
 
 .dialog-content {
-    width: 85%; 
+    width: 85%;
     max-width: 420px;
-    text-align: center; 
-    background: linear-gradient(180deg, #0000bb 0%, #000044 100%);
-    border: 4px double #eee;
+    text-align: center;
+    background: linear-gradient(180deg, #0000bb 0%, var(--ff-bg-bottom) 100%);
+    border: 4px double var(--ff-border);
     padding: 20px;
     border-radius: 8px;
 }
 
-/* マップ */
+/* はい/いいえモーダル（#game-container 外・flex干渉防止） */
+#yes-no-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+#yes-no-modal-overlay .ff-window {
+    padding: 30px;
+    text-align: center;
+    max-width: 400px;
+}
+#yes-no-message {
+    margin-bottom: 30px;
+    font-size: 18px;
+    line-height: 1.6;
+}
+.yes-no-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+.yes-no-buttons button {
+    padding: 15px 30px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+#yes-button { background: #4CAF50; color: white; }
+#no-button { background: #f44336; color: white; }
+
+/* マップ（1.2倍表示：鳥など見やすく） */
 #map-grid {
     display: grid; 
-    grid-template-columns: repeat(10, 8vw); 
+    grid-template-columns: repeat(10, 9.6vw);  /* 8vw × 1.2 */
     gap: 1px;
-    max-width: 320px;
+    max-width: 384px;  /* 320px × 1.2 */
     justify-content: center; 
     margin: 10px auto;
     background-color: #222; 
@@ -231,11 +379,11 @@ body {
 
 @media (min-width: 400px) {
     #map-grid { 
-        grid-template-columns: repeat(10, 32px); 
+        grid-template-columns: repeat(10, 38.4px);  /* 32px × 1.2 */
     }
 }
 
-/* 横向き（ランドスケープ）対応 */
+/* 横向き（ランドスケープ）対応：パディングを広げて見やすく */
 @media (orientation: landscape) {
     #control-panel {
         height: 180px;
@@ -254,8 +402,8 @@ body {
     }
     
     #game-container {
-        padding-left: env(safe-area-inset-left, 0);
-        padding-right: env(safe-area-inset-right, 0);
+        padding-left: max(24px, env(safe-area-inset-left, 0));
+        padding-right: max(24px, env(safe-area-inset-right, 0));
     }
     
     #map-grid {
@@ -281,7 +429,7 @@ body {
         height: 52px;
         min-height: 44px;
         max-height: 60px;
-        font-size: 12px;
+        font-size: 13px;
         padding: 4px;
     }
     #battle-screen .battle-ui {
@@ -316,7 +464,7 @@ body {
         height: 44px;
         min-height: 40px;
         max-height: 52px;
-        font-size: 11px;
+        font-size: 12px;
     }
     #battle-screen .battle-ui {
         height: 140px;
@@ -441,6 +589,14 @@ body {
     border: 1px solid #5d2a0a;
     box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
 }
+/* 南国の浜・装飾タイル（上を通れる） */
+.field-tropical_south .cell.beach,
+.field-tropical_south .cell.hibiscus,
+.field-tropical_south .cell.coconut,
+.field-tropical_south .cell.mango {
+    background: linear-gradient(135deg, #f4e4b4 0%, #e8d498 100%);
+    border: 1px solid #f8ecc8;
+}
 
 #map-grid.field-tropical_village {
     background: linear-gradient(135deg, #1a4a3a 0%, #2a6a5a 50%, #0a3a2a 100%);
@@ -522,17 +678,19 @@ body {
     }
 }
 
-.cell { 
-    width: 100%; 
-    aspect-ratio: 1/1; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
+.cell {
+    width: 100%;
+    aspect-ratio: 1/1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     font-size: 18px;
+    line-height: 1;
     position: relative;
     transition: transform 0.1s ease, box-shadow 0.2s ease;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), 0 0 3px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    border-radius: 2px;
 }
 
 /* 街（town_inside）のセルスタイル */
@@ -801,6 +959,15 @@ body {
     box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8);
 }
 
+/* かつての村・装飾タイル（上を通れる） */
+.field-ruined_village .cell.coffin,
+.field-ruined_village .cell.cobweb,
+.field-ruined_village .cell.candle {
+    background: linear-gradient(135deg, #6a6a6a 0%, #5a5a5a 100%);
+    border: 1px solid #7a7a7a;
+    box-shadow: inset 0 0 10px rgba(200, 200, 200, 0.2), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 /* 迷いの森（dark_forest）のセルスタイル */
 .field-dark_forest .cell.forest { 
     background: linear-gradient(135deg, #2a6a2a 0%, #1a5a1a 100%);
@@ -991,6 +1158,7 @@ body {
 
 .cell.obj-castle {
     filter: drop-shadow(0 0 10px rgba(200, 200, 255, 0.8));
+    font-size: 1.2em;  /* 城を1.2倍表示 */
 }
 
 .cell.obj-boss {
@@ -1033,6 +1201,10 @@ body {
     filter: drop-shadow(0 0 15px rgba(255, 215, 0, 1));
     animation: goldenCatGlow 2s ease-in-out infinite;
     font-size: 1.5em;
+    overflow: visible;
+}
+.cell.obj-golden-cat .golden-cat-svg-container {
+    transform: scale(1.2);  /* 金色の🐈を1.2倍表示 */
 }
 
 @keyframes goldenCatGlow {
@@ -1115,20 +1287,6 @@ body {
         z-index: 3;
         transition: transform 0.2s ease, z-index 0s;
     }
-}
-
-/* セルの基本スタイル強化 */
-.cell {
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8), 0 0 3px rgba(0, 0, 0, 0.5);
-    border-radius: 2px;
-    overflow: hidden;
-    position: relative;
-}
-
-/* セル内のテキスト（絵文字・アイコン）のスタイル */
-.cell {
-    font-size: 18px;
-    line-height: 1;
 }
 
 @media (min-width: 400px) {
@@ -1310,16 +1468,19 @@ body {
 
 #battle-screen .battle-ui { 
     display: flex; 
+    width: 100%;
     height: 220px; 
     min-height: 200px;
     max-height: 240px;
-    gap: 5px; 
-    padding: 5px; 
+    gap: 8px; 
+    padding: 6px 10px; 
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 .command-box { 
-    width: 40%; 
+    flex: 0 1 42%;
+    min-width: 0;
     text-align: left; 
     overflow-y: auto; 
 }
@@ -1353,7 +1514,8 @@ body {
 }
 
 .status-box { 
-    width: 60%; 
+    flex: 1;
+    min-width: 0;
     text-align: left; 
     font-size: 12px; 
     overflow: hidden; 
@@ -1363,15 +1525,17 @@ body {
 
 #battle-log { 
     flex-shrink: 0;
-    width: 95%; 
+    width: 100%;
     height: 72px; 
     min-height: 56px;
     max-height: 80px;
-    margin: 5px auto; 
+    margin: 5px 0; 
+    padding: 6px 10px;
+    box-sizing: border-box;
     background: rgba(0,0,0,0.8); 
     border: 1px solid #fff; 
-    padding: 5px; 
-    font-size: 14px; 
+    font-family: 'DotGothic16', 'MS Gothic', sans-serif;
+    font-size: 15px;
     overflow-y: auto; 
     overflow-x: hidden;
 }
@@ -1683,19 +1847,18 @@ body {
 }
 
 /* コントロールパネル */
-/* PCでゲーム全体を中央に寄せるため、幅上限＋左右マージン */
 #control-panel {
-    flex-shrink: 0; 
-    height: 220px; 
+    flex-shrink: 0;
+    height: 220px;
     width: 100%;
-    max-width: 620px;
+    max-width: var(--max-content);
     margin-left: auto;
     margin-right: auto;
-    background-color: #ccc;
+    background-color: var(--control-bg);
     display: flex;
     justify-content: space-around;
     align-items: center;
-    border-top: 4px solid #999;
+    border-top: 4px solid var(--control-border);
     user-select: none;
     touch-action: manipulation;
     padding-bottom: env(safe-area-inset-bottom);
@@ -1716,21 +1879,22 @@ body {
 }
 
 .pad-btn {
-    width: 55px; 
+    width: 55px;
     height: 55px;
-    background: #444; 
-    border: none; 
+    background: var(--btn-bg);
+    border: none;
     border-radius: 8px;
-    color: white; 
+    color: white;
     font-size: 24px;
-    box-shadow: 0 4px #000;
+    box-shadow: 0 4px var(--btn-shadow);
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
-.pad-btn:active { 
-    transform: translateY(2px); 
-    box-shadow: 0 2px #000; 
-    background: #222; 
+.pad-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px var(--btn-shadow);
+    background: #222;
 }
 
 .up { grid-area: up; } 
@@ -1745,21 +1909,22 @@ body {
 }
 
 .circle-btn {
-    width: 70px; 
+    width: 70px;
     height: 70px;
-    background: #a00; 
-    border: 2px solid #500; 
+    background: #a00;
+    border: 2px solid #500;
     border-radius: 50%;
-    color: white; 
-    font-size: 24px; 
+    color: white;
+    font-size: 24px;
     font-weight: bold;
-    box-shadow: 0 4px #000;
+    box-shadow: 0 4px var(--btn-shadow);
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
-.circle-btn:active { 
-    transform: translateY(2px); 
-    box-shadow: 0 2px #000; 
+.circle-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px var(--btn-shadow); 
     background: #700; 
 }
 
