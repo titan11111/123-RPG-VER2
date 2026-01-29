@@ -28,8 +28,15 @@ const TILE = {
     VILLAGE_ENTRANCE: 25,
     GOLDEN_CAT: 26,
     SEA: 27,   // 南国フィールドの海（進入不可）
-    PALM: 28,  // 南国フィールドのヤシの木（進入不可）
-    BRIDGE: 29 // 南国・浜と村を繋ぐ橋（歩行可）
+    PALM: 28,  // 南国フィールドのヤシの木🌴（上を通れる）
+    BRIDGE: 29, // 南国・浜と村を繋ぐ橋（歩行可）
+    BEACH: 30,  // 🏖️（上を通れる）
+    HIBISCUS: 31, // 🌺（上を通れる）
+    COCONUT: 32,  // 🥥（上を通れる）
+    MANGO: 33,    // 🥭（上を通れる）
+    COFFIN: 34,   // ⚰️（上を通れる）
+    COBWEB: 35,   // 🕸️（上を通れる）
+    CANDLE: 36    // 🕯️（上を通れる）
 };
 
 const MAP_SIZE = {

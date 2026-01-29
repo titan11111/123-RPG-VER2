@@ -3,32 +3,29 @@
    ============================================ */
 
 /**
+ * iOS Safari対応: 音声アンロック＋タイトル画面時はタイトルBGM再生
+ * ユーザー操作のたびに呼んでよい（内部で重複再生を防ぐ）
+ */
+function ensureAudioUnlockAndMaybePlayTitleBGM() {
+    if (typeof audioContextUnlocked !== 'undefined' && typeof unlockAudioContext === 'function' && !audioContextUnlocked) {
+        unlockAudioContext();
+    }
+    const startScreen = document.getElementById('start-screen');
+    if (!startScreen || !startScreen.classList.contains('active')) return;
+    if (typeof playBGM !== 'function') return;
+    const currentBGM = typeof getCurrentBGM === 'function' ? getCurrentBGM() : null;
+    if (currentBGM && currentBGM.id === 'bgm-title' && !currentBGM.paused) return;
+    setTimeout(() => { playBGM('bgm-title'); }, TIMING.AUDIO_UNLOCK_RETRY_MS || 100);
+}
+
+/**
  * 移動入力処理
  * @param {number} dx - X方向の移動量（-1, 0, 1）
  * @param {number} dy - Y方向の移動量（-1, 0, 1）
  */
 function handleMove(dx, dy) {
-    // iOS Safari対応: 最初のユーザー操作で音声をアンロック
-    if (typeof audioContextUnlocked !== 'undefined' && typeof unlockAudioContext === 'function') {
-        if (!audioContextUnlocked) {
-            unlockAudioContext();
-        }
-    }
-    
-    // タイトル画面が表示されている場合、タイトルBGMを再生
-    const startScreen = document.getElementById('start-screen');
-    if (startScreen && startScreen.classList.contains('active')) {
-        if (typeof playBGM === 'function') {
-            const currentBGM = typeof getCurrentBGM === 'function' ? getCurrentBGM() : null;
-            if (!currentBGM || currentBGM.id !== 'bgm-title') {
-                // アンロック完了を待ってから再生
-                setTimeout(() => {
-                    playBGM('bgm-title');
-                }, 100);
-            }
-        }
-    }
-    
+    ensureAudioUnlockAndMaybePlayTitleBGM();
+
     // 戦闘中のコマンド選択
     if (gameState.isBattle && gameState.canAttack) {
         if (dy === -1) {
@@ -51,19 +48,8 @@ function handleMove(dx, dy) {
 }
 
 function handleA() {
-    // iOS Safari対応: 最初のユーザー操作で音声をアンロック（確実に）
-    if (typeof audioContextUnlocked !== 'undefined' && typeof unlockAudioContext === 'function') {
-        if (!audioContextUnlocked) {
-            unlockAudioContext();
-            // アンロック完了を待つ
-            setTimeout(() => {
-                if (typeof audioContextUnlocked !== 'undefined') {
-                    audioContextUnlocked = true;
-                }
-            }, 100);
-        }
-    }
-    
+    ensureAudioUnlockAndMaybePlayTitleBGM();
+
     const dialogOverlay = document.getElementById('custom-dialog-overlay');
     const yesNoModal = document.getElementById('yes-no-modal-overlay');
     const startScreen = document.getElementById('start-screen');
@@ -88,45 +74,37 @@ function handleA() {
 
     // タイトル画面
     if (startScreen.classList.contains('active')) {
-        // 復帰フラグをチェック
+        // 復帰フラグがある場合はプロローグをスキップしてメインへ
         const waitingForReturn = localStorage.getItem('rpgWaitingForReturn');
         const savedState = localStorage.getItem('rpgSavedState');
-        
-        // 復帰フラグがある場合は、プロローグをスキップしてメイン画面に遷移し、復帰処理を実行
         if (waitingForReturn === 'true' && savedState) {
-            // タイトルBGMを停止
-            if (typeof stopAllBGM === 'function') {
-                stopAllBGM();
-            }
-            // メイン画面に直接遷移
+            if (typeof stopAllBGM === 'function') stopAllBGM();
             showScreen('main-screen');
-            // 少し待ってから復帰処理を実行（ゲーム初期化を待つ）
             setTimeout(() => {
-                if (typeof returnFromOtherWorld === 'function') {
-                    returnFromOtherWorld();
-                }
+                if (typeof returnFromOtherWorld === 'function') returnFromOtherWorld();
             }, 1000);
             return;
         }
-        
-        // 通常のスタート時：タイトルBGMが再生されていない場合は再生（既に再生中なら何もしない）
-        if (typeof playBGM === 'function') {
-            const currentBGM = typeof getCurrentBGM === 'function' ? getCurrentBGM() : null;
-            if (!currentBGM || currentBGM.id !== 'bgm-title' || currentBGM.paused) {
-                playBGM('bgm-title');
-            }
-        }
-        // プロローグへ進む（タイトルBGMを少し再生してから）
-        setTimeout(() => {
-            stopAllBGM();
-            showScreen('prologue-screen');
-            // プロローグBGMを少し待ってから再生（画面遷移とBGM停止を待つ）
-            setTimeout(() => {
-                if (typeof playBGM === 'function') {
-                    playBGM('bgm-prologue');
+
+        // 1回目A: オープニングBGMを再生してタイトルに留まる
+        if (gameState.titleScreenStep === 0) {
+            if (typeof playBGM === 'function') {
+                const currentBGM = typeof getCurrentBGM === 'function' ? getCurrentBGM() : null;
+                if (!currentBGM || currentBGM.id !== 'bgm-title' || currentBGM.paused) {
+                    playBGM('bgm-title');
                 }
-            }, 150);
-        }, 500); // タイトルBGMを少し再生してからプロローグへ（500msに延長）
+            }
+            gameState.titleScreenStep = 1;
+            return;
+        }
+
+        // 2回目A: プロローグへ進む
+        if (typeof stopAllBGM === 'function') stopAllBGM();
+        showScreen('prologue-screen');
+        setTimeout(() => {
+            if (typeof playBGM === 'function') playBGM('bgm-prologue');
+        }, 150);
+        gameState.titleScreenStep = 0; // 次回起動用にリセット
         return;
     }
 
@@ -335,65 +313,18 @@ window.addEventListener('load', function() {
     console.log('ゲーム初期化完了');
 });
 
-// iOS Safari対応: タッチイベントで音声コンテキストをアンロック
-// 最初のユーザー操作でタイトルBGMを再生
-document.addEventListener('touchstart', function() {
-    if (typeof audioContextUnlocked !== 'undefined' && typeof unlockAudioContext === 'function') {
-        if (!audioContextUnlocked) {
-            unlockAudioContext();
-        }
-    }
-    
-    // タイトル画面が表示されている場合、タイトルBGMを再生
-    const startScreen = document.getElementById('start-screen');
-    if (startScreen && startScreen.classList.contains('active')) {
-        if (typeof playBGM === 'function') {
-            const currentBGM = typeof getCurrentBGM === 'function' ? getCurrentBGM() : null;
-            if (!currentBGM || currentBGM.id !== 'bgm-title') {
-                // アンロック完了を待ってから再生
-                setTimeout(() => {
-                    playBGM('bgm-title');
-                }, 100);
-            }
-        }
-    }
-}, { once: true });
-
-// iOS Safari対応: クリックイベントで音声コンテキストをアンロック
+document.addEventListener('touchstart', ensureAudioUnlockAndMaybePlayTitleBGM, { once: true });
 document.addEventListener('click', function() {
-    if (typeof audioContextUnlocked !== 'undefined' && typeof unlockAudioContext === 'function') {
-        if (!audioContextUnlocked) {
-            unlockAudioContext();
-        }
-    }
+    if (typeof unlockAudioContext === 'function' && typeof audioContextUnlocked !== 'undefined' && !audioContextUnlocked) unlockAudioContext();
 }, { once: true });
 
 /* ============================================
    キーボード入力対応（PC用）
    ============================================ */
 
-// キーボード入力の処理
 document.addEventListener('keydown', function(event) {
-    // iOS Safari対応: 最初のユーザー操作で音声をアンロック
-    if (typeof audioContextUnlocked !== 'undefined' && typeof unlockAudioContext === 'function') {
-        if (!audioContextUnlocked) {
-            unlockAudioContext();
-        }
-    }
-    
-    // タイトル画面が表示されている場合、タイトルBGMを再生
-    const startScreen = document.getElementById('start-screen');
-    if (startScreen && startScreen.classList.contains('active')) {
-        if (typeof playBGM === 'function') {
-            const currentBGM = typeof getCurrentBGM === 'function' ? getCurrentBGM() : null;
-            if (!currentBGM || currentBGM.id !== 'bgm-title') {
-                setTimeout(() => {
-                    playBGM('bgm-title');
-                }, 100);
-            }
-        }
-    }
-    
+    ensureAudioUnlockAndMaybePlayTitleBGM();
+
     // キーコードに応じて移動処理
     let dx = 0;
     let dy = 0;

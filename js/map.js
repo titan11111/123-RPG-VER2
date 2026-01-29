@@ -932,6 +932,13 @@ function drawMap() {
             if (type === TILE.SEA) cell.classList.add('sea');
             if (type === TILE.PALM) cell.classList.add('palm');
             if (type === TILE.BRIDGE) cell.classList.add('bridge');
+            if (type === TILE.BEACH) cell.classList.add('beach');
+            if (type === TILE.HIBISCUS) cell.classList.add('hibiscus');
+            if (type === TILE.COCONUT) cell.classList.add('coconut');
+            if (type === TILE.MANGO) cell.classList.add('mango');
+            if (type === TILE.COFFIN) cell.classList.add('coffin');
+            if (type === TILE.COBWEB) cell.classList.add('cobweb');
+            if (type === TILE.CANDLE) cell.classList.add('candle');
 
             // 仲間の位置をチェック（パーティの順番に基づく）
             let allyFound = false;
@@ -1002,7 +1009,7 @@ function drawMap() {
                 const showRight = direction === 'right' || direction === 'left';
                 
                 cell.innerHTML = `
-                    <div class="hero-svg-container" style="transform: scaleX(${isLeft ? '-1' : '1'});">
+                    <div class="hero-svg-container" style="transform: scale(1.2) scaleX(${isLeft ? '-1' : '1'});">
                         <div class="hero-animating">
                             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="hero-svg">
                             <defs>
@@ -1094,7 +1101,14 @@ function drawMap() {
                     [TILE.GHOST]: '👻', 
                     [TILE.MOMO]: '🍑', 
                     [TILE.VILLAGE_ENTRANCE]: '🏚️',
-                    [TILE.GOLDEN_CAT]: '🐈'
+                    [TILE.GOLDEN_CAT]: '🐈',
+                    [TILE.BEACH]: '🏖️',
+                    [TILE.HIBISCUS]: '🌺',
+                    [TILE.COCONUT]: '🥥',
+                    [TILE.MANGO]: '🥭',
+                    [TILE.COFFIN]: '⚰️',
+                    [TILE.COBWEB]: '🕸️',
+                    [TILE.CANDLE]: '🕯️'
                 };
                 
                 // ショップチェック（SVGを使用）
@@ -1225,8 +1239,8 @@ function moveHero(dx, dy) {
     if (isValidMapPosition(newX, newY)) {
         const tile = map.data[newY][newX];
         
-        // 壁チェック
-        if (tile === TILE.WALL || tile === TILE.SEA || tile === TILE.PALM) return; 
+        // 壁チェック（PALM=ヤシの木は上を通れる）
+        if (tile === TILE.WALL || tile === TILE.SEA) return; 
 
         // 扉の処理
         if (!handleDoorTile(tile, newX, newY, map)) {
