@@ -160,6 +160,12 @@ const LEVEL_UP = {
     MP_BONUS: 5    // MPの成長（既にui.jsで実装済み）
 };
 
+/** 仲間（犬・猿・きじ）のレベルアップ時の成長量（主人公より控えめにして主人公を主役に） */
+const ALLY_LEVEL_UP = {
+    ATK_BONUS: 3,
+    HP_BONUS: 8
+};
+
 const MAGIC = {
     BASE_DAMAGE_MULTIPLIER: 1.5,  // 魔法力に対するダメージ倍率
     MIN_DAMAGE_MULTIPLIER: 0.8,   // 最小ダメージ倍率（魔法力が低い場合の保証）

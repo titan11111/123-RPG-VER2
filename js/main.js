@@ -66,9 +66,16 @@ function handleA() {
         return;
     }
 
-    // ダイアログが開いている場合は閉じる
+    // ダイアログが開いている場合は閉じる（仲間の挑発台詞の直後なら試練戦闘開始）
     if (dialogOverlay.style.display === 'flex') {
-        closeCustomDialog();
+        if (gameState.pendingAllyTrial !== null) {
+            const tile = gameState.pendingAllyTrial;
+            gameState.pendingAllyTrial = null;
+            closeCustomDialog();
+            if (typeof startAllyTrialBattle === 'function') startAllyTrialBattle(tile);
+        } else {
+            closeCustomDialog();
+        }
         return;
     }
 
@@ -136,6 +143,23 @@ function handleA() {
     if (townActions.style.display === 'block') {
         rest();
         return;
+    }
+
+    // メイン画面：仲間のいるマスでAボタン→挑発台詞を表示（閉じたら試練戦闘開始・勝てば仲間）
+    const mainScreen = document.getElementById('main-screen');
+    if (mainScreen && mainScreen.classList.contains('active')) {
+        const map = worldMaps[hero.currentArea];
+        if (map && map.data && map.data[hero.y] !== undefined) {
+            const tile = map.data[hero.y][hero.x];
+            if ((tile === TILE.ALLY_DOG || tile === TILE.ALLY_BIRD || tile === TILE.ALLY_MONKEY)) {
+                const ally = allyData[tile];
+                if (ally && !party.find(m => m.name === ally.name)) {
+                    gameState.pendingAllyTrial = tile;
+                    showAlert(`${ally.name}:「${ally.trialMsg}」\n\nAボタンで戦いを始める`);
+                    return;
+                }
+            }
+        }
     }
 }
 

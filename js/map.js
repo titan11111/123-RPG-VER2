@@ -1562,7 +1562,7 @@ function transferToOtherWorld() {
         heroY: hero.y,
         heroArea: hero.currentArea,
         heroDirection: gameState.heroDirection,
-        party: party.map(m => ({ name: m.name, hp: m.hp, maxHp: m.maxHp, atk: m.atk })),
+        party: party.map(m => ({ name: m.name, hp: m.hp, maxHp: m.maxHp, atk: m.atk, lv: m.lv, exp: m.exp })),
         heroStats: {
             hp: hero.hp,
             maxHp: hero.maxHp,
@@ -1757,9 +1757,14 @@ function handleTileEvent(tile, x, y, map) {
             break;
         case TILE.ALLY_DOG:
         case TILE.ALLY_BIRD:
-        case TILE.ALLY_MONKEY:
-            addAlly(tile);
+        case TILE.ALLY_MONKEY: {
+            const ally = allyData[tile];
+            if (party.find(m => m.name === ally.name)) {
+                break; // 既に仲間の場合は何もしない
+            }
+            showAlert(`${ally.name}がいる。Aボタンで話す`);
             break;
+        }
         case TILE.ENEMY:
             startBattle();
             break;

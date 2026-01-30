@@ -53,17 +53,20 @@ function closeCustomDialog() {
 }
 
 /**
- * 武器屋を表示・購入処理
+ * 武器屋を表示・購入処理（南国の村では南国の剣を追加したリストを使用）
  */
 function showShop() {
-    let msg = "武器屋 (番号入力):\n";
-    shopItems.forEach((item, index) => { msg += `${index}: ${item.name} (${item.price}G)\n`; });
+    const weaponItems = (hero.currentArea === "tropical_village" && typeof tropicalVillageShopItems !== 'undefined')
+        ? tropicalVillageShopItems
+        : shopItems;
+    let msg = hero.currentArea === "tropical_village" ? "南国の武器屋 (番号入力):\n" : "武器屋 (番号入力):\n";
+    weaponItems.forEach((item, index) => { msg += `${index}: ${item.name} (${item.price}G)\n`; });
     
     // MP回復アイテムが定義されている場合のみ表示
     if (typeof MP_ITEMS !== 'undefined' && MP_ITEMS.length > 0) {
         msg += "\n--- MP回復アイテム ---\n";
         MP_ITEMS.forEach((item, index) => { 
-            msg += `${shopItems.length + index}: ${item.name} (${item.price}G) - ${item.description}\n`; 
+            msg += `${weaponItems.length + index}: ${item.name} (${item.price}G) - ${item.description}\n`; 
         });
     }
     
@@ -71,8 +74,8 @@ function showShop() {
     if (choice !== null) {
         const itemIndex = parseInt(choice);
         // 武器アイテム
-        if (itemIndex < shopItems.length && shopItems[itemIndex]) {
-            const item = shopItems[itemIndex];
+        if (itemIndex < weaponItems.length && weaponItems[itemIndex]) {
+            const item = weaponItems[itemIndex];
             if (hero.gold >= item.price) {
                 // アイテム購入効果音を再生
                 if (typeof playSfxPurchase === 'function') {
@@ -86,9 +89,9 @@ function showShop() {
         }
         // MP回復アイテム（定義されている場合のみ）
         else if (typeof MP_ITEMS !== 'undefined' && 
-                 itemIndex >= shopItems.length && 
-                 itemIndex < shopItems.length + MP_ITEMS.length) {
-            const item = MP_ITEMS[itemIndex - shopItems.length];
+                 itemIndex >= weaponItems.length && 
+                 itemIndex < weaponItems.length + MP_ITEMS.length) {
+            const item = MP_ITEMS[itemIndex - weaponItems.length];
             if (hero.gold >= item.price) {
                 // アイテム購入効果音を再生
                 if (typeof playSfxPurchase === 'function') {
@@ -174,6 +177,66 @@ function showLevelUpAnimation(oldLv, newLv) {
         overlay.remove();
         showAlert(`レベルアップ！ LV ${newLv}\n攻撃力とHPが上がった！`);
     }, 2500);
+}
+
+/**
+ * 仲間のレベルアップ判定と処理（戦闘後など）
+ * @param {Object} member - パーティメンバー（仲間）
+ */
+function checkAllyLevelUp(member) {
+    if (!member || member === hero) return;
+    member.lv = member.lv || 1;
+    member.exp = member.exp || 0;
+    let currentLevel = member.lv;
+    let nextLevelExp = getRequiredExp(currentLevel + 1);
+    while (member.exp >= nextLevelExp && currentLevel < 50) {
+        const oldLv = member.lv;
+        member.lv++;
+        member.atk += (typeof ALLY_LEVEL_UP !== 'undefined' ? ALLY_LEVEL_UP.ATK_BONUS : 3);
+        member.maxHp += (typeof ALLY_LEVEL_UP !== 'undefined' ? ALLY_LEVEL_UP.HP_BONUS : 8);
+        member.hp = member.maxHp;
+        showAllyLevelUpAnimation(member.name, oldLv, member.lv);
+        currentLevel = member.lv;
+        nextLevelExp = getRequiredExp(currentLevel + 1);
+    }
+}
+
+/**
+ * 仲間のレベルアップ演出を表示（例：犬がレベルアップした！）
+ * @param {string} memberName - 仲間の名前
+ * @param {number} oldLv - レベルアップ前のレベル
+ * @param {number} newLv - レベルアップ後のレベル
+ */
+function showAllyLevelUpAnimation(memberName, oldLv, newLv) {
+    if (typeof playSfxLevelUp === 'function') {
+        playSfxLevelUp();
+    }
+    const overlay = document.createElement('div');
+    overlay.className = 'levelup-overlay';
+    const levelupText = document.createElement('div');
+    levelupText.className = 'levelup-text';
+    levelupText.innerText = `${memberName}がレベルアップした！`;
+    overlay.appendChild(levelupText);
+    const stats = document.createElement('div');
+    stats.className = 'levelup-stats';
+    const allyAtk = (typeof ALLY_LEVEL_UP !== 'undefined' ? ALLY_LEVEL_UP.ATK_BONUS : 3);
+    const allyHp = (typeof ALLY_LEVEL_UP !== 'undefined' ? ALLY_LEVEL_UP.HP_BONUS : 8);
+    stats.innerHTML = `LV ${oldLv} → LV ${newLv}<br>攻撃力 +${allyAtk}<br>最大HP +${allyHp}`;
+    overlay.appendChild(stats);
+    document.body.appendChild(overlay);
+    setTimeout(() => {
+        overlay.remove();
+        showAlert(`${memberName}がレベルアップした！\n攻撃力とHPが上がった！`);
+    }, 2500);
+}
+
+/**
+ * 仲間全員のレベルアップ判定（戦闘後に呼ぶ）
+ */
+function checkAllyLevelUps() {
+    for (let i = 1; i < party.length; i++) {
+        checkAllyLevelUp(party[i]);
+    }
 }
 
 /**

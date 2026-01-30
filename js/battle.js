@@ -37,6 +37,52 @@ function startBattle() {
 }
 
 /**
+ * 仲間との試練戦闘開始（話しかけた後、勝てば仲間・負けてもゲームオーバーにならない）
+ * @param {number} tile - 仲間タイル（TILE.ALLY_DOG 等）
+ */
+function startAllyTrialBattle(tile) {
+    const ally = allyData[tile];
+    if (!ally || party.find(m => m.name === ally.name)) return;
+    gameState.isBattle = true;
+    gameState.isBattleEnding = false;
+    gameState.isAllyTrialBattle = true;
+    gameState.allyTrialTile = tile;
+    gameState.currentEnemy = {
+        name: ally.name,
+        hp: ally.maxHp,
+        maxHp: ally.maxHp,
+        atk: ally.atk,
+        exp: 0,
+        gold: 0,
+        img: ally.battleImg || "images/dog.png"
+    };
+    if (typeof playSfxEncounter === 'function') {
+        playSfxEncounter();
+    }
+    initBattle();
+    addBattleLog(`${ally.name}:「${ally.trialMsg}」`);
+    addBattleLog("戦いが始まった！");
+}
+
+/**
+ * 仲間との試練戦闘で負けた時（ゲームオーバーにせずマップに戻る）
+ */
+function endAllyTrialDefeat() {
+    const enemy = gameState.currentEnemy;
+    const ally = enemy && allyData ? Object.values(allyData).find(a => a.name === enemy.name) : null;
+    const defeatMsg = ally ? ally.defeatMsg : "まだまだだな…";
+    gameState.isBattle = false;
+    gameState.isBattleEnding = false;
+    gameState.isAllyTrialBattle = false;
+    gameState.allyTrialTile = null;
+    showScreen('main-screen');
+    drawMap();
+    updateStatus();
+    playAreaBGM(hero.currentArea);
+    showAlert(`${enemy ? enemy.name : ''}:「${defeatMsg}」\n\n負けたが、ゲームオーバーにはならない。もう一度挑戦できる。`);
+}
+
+/**
  * ボス戦闘開始
  */
 function startBossBattle() {
@@ -1102,8 +1148,13 @@ function enemyTurn() {
         
         updateBattleStatus();
         
-        // ゲームオーバー判定
+        // ゲームオーバー判定（仲間試練戦闘では負けてもゲームオーバーにしない）
         if (hero.hp <= 0) {
+            if (gameState.isAllyTrialBattle) {
+                addBattleLog("力尽きた...");
+                setTimeout(() => endAllyTrialDefeat(), 800);
+                return;
+            }
             if (typeof playSfxGameOver === 'function') {
                 playSfxGameOver();
             }
@@ -1166,9 +1217,13 @@ function enemyTurn() {
     
     updateBattleStatus();
 
-    // ゲームオーバー判定
+    // ゲームオーバー判定（仲間試練戦闘では負けてもゲームオーバーにしない）
     if (hero.hp <= 0) { 
-        // ゲームオーバー効果音を再生
+        if (gameState.isAllyTrialBattle) {
+            addBattleLog("力尽きた...");
+            setTimeout(() => endAllyTrialDefeat(), 800);
+            return;
+        }
         if (typeof playSfxGameOver === 'function') {
             playSfxGameOver();
         }
@@ -1239,9 +1294,14 @@ function showVictoryAnimation() {
     const rewards = document.createElement('div');
     rewards.className = 'victory-rewards';
     const enemy = gameState.currentEnemy;
-    let rewardText = `経験値: ${enemy.exp}`;
-    if (enemy.gold > 0) {
-        rewardText += `\nゴールド: ${enemy.gold}G`;
+    let rewardText;
+    if (gameState.isAllyTrialBattle && enemy) {
+        rewardText = `${enemy.name}が仲間に加わった！`;
+    } else {
+        rewardText = `経験値: ${enemy.exp}`;
+        if (enemy.gold > 0) {
+            rewardText += `\nゴールド: ${enemy.gold}G`;
+        }
     }
     rewards.innerText = rewardText;
     overlay.appendChild(rewards);
@@ -1261,6 +1321,19 @@ function confirmBattleResult() {
     gameState.isBattle = false;
     gameState.isBattleEnding = false;
     const enemy = gameState.currentEnemy;
+    
+    // 仲間との試練戦闘に勝利した場合：仲間に加える（経験値・ゴールドはなし）
+    if (gameState.isAllyTrialBattle && gameState.allyTrialTile !== null) {
+        const tile = gameState.allyTrialTile;
+        gameState.isAllyTrialBattle = false;
+        gameState.allyTrialTile = null;
+        showScreen('main-screen');
+        drawMap();
+        updateStatus();
+        playAreaBGM(hero.currentArea);
+        addAlly(tile);
+        return;
+    }
     
     // エンディング判定
     if (enemy.name === "魔王") {
@@ -1295,6 +1368,7 @@ function confirmBattleResult() {
     updateStatus();
     playAreaBGM(hero.currentArea);
     checkLevelUp();
+    if (typeof checkAllyLevelUps === 'function') checkAllyLevelUps();
 }
 
 /**
@@ -1320,8 +1394,10 @@ function handleBattleRewards(enemy) {
         hero.atk += 100;
     }
     
-    // 経験値とゴールド獲得
-    hero.exp += enemy.exp;
+    // 経験値とゴールド獲得（主人公・仲間全員に経験値）
+    party.forEach(m => {
+        m.exp = (m.exp || 0) + enemy.exp;
+    });
     hero.gold += (enemy.gold || 0); 
     
     // マップ上の敵タイルを削除
