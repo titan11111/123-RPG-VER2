@@ -50,15 +50,28 @@ function unlockAudioContext() {
  * @returns {{ audio: HTMLAudioElement, resolvedId: string } | null}
  */
 function getBGMWithFallback(bgmId) {
+    console.log(`[getBGMWithFallback] 開始: bgmId=${bgmId}`);
     let audio = document.getElementById(bgmId);
     let resolvedId = bgmId;
+    if (audio) {
+        console.log(`[getBGMWithFallback] BGM要素が見つかりました: ${bgmId}`);
+    } else {
+        console.warn(`[getBGMWithFallback] BGM要素が見つかりません: ${bgmId}`);
+    }
     while (!audio && typeof BGM_FALLBACK_MAP !== 'undefined' && BGM_FALLBACK_MAP[resolvedId]) {
         const fallbackId = BGM_FALLBACK_MAP[resolvedId];
-        console.warn(`BGM要素が見つかりません: ${resolvedId} → ${fallbackId} を使用`);
+        console.warn(`[getBGMWithFallback] フォールバックを使用: ${resolvedId} → ${fallbackId}`);
         resolvedId = fallbackId;
         audio = document.getElementById(fallbackId);
+        if (audio) {
+            console.log(`[getBGMWithFallback] フォールバックBGM要素が見つかりました: ${fallbackId}`);
+        }
     }
-    if (!audio) return null;
+    if (!audio) {
+        console.error(`[getBGMWithFallback] BGM要素・フォールバックも見つかりません: ${bgmId}`);
+        return null;
+    }
+    console.log(`[getBGMWithFallback] 成功: resolvedId=${resolvedId}`);
     return { audio, resolvedId };
 }
 
@@ -80,7 +93,7 @@ function stopAllBGM() {
         // 全てのBGM要素を停止（念のため）
         const bgmIds = [
             'bgm-title', 'bgm-prologue', 'bgm-town', 'bgm-field',
-            'bgm-battle', 'bgm-boss', 'bgm-lastboss', 'bgm-ending'
+            'bgm-battle', 'bgm-boss', 'bgm-lastboss', 'bgm-ending', 'bgm-catgod'
         ];
         
         bgmIds.forEach(id => {
@@ -110,25 +123,35 @@ function stopAllBGM() {
  */
 function playBGM(bgmId, volume = null) {
     try {
+        console.log(`[playBGM] 開始: bgmId=${bgmId}`);
         const resolved = getBGMWithFallback(bgmId);
         if (!resolved) {
             console.error(`BGM要素・フォールバックも見つかりません: ${bgmId}`);
             return;
         }
         const { audio, resolvedId } = resolved;
+        console.log(`[playBGM] BGM要素取得成功: resolvedId=${resolvedId}, audio要素=${audio ? '存在' : '不存在'}`);
 
-        // 同じBGMが既に再生中なら何もしない
+        // 同じBGMが既に再生中なら何もしない（ただし、音量が異なる場合は再設定）
         if (currentBGM && currentBGM.id === resolvedId && !currentBGM.paused) {
-            console.log(`BGM既に再生中: ${resolvedId}`);
-            return;
+            const targetVolume = volume != null ? Math.min(1.0, Math.max(0.0, volume)) : BGM_VOLUME;
+            if (Math.abs(currentBGM.volume - targetVolume) > 0.01) {
+                // 音量が異なる場合は更新
+                currentBGM.volume = targetVolume;
+                console.log(`BGM音量を更新: ${resolvedId} → ${targetVolume}`);
+            } else {
+                console.log(`BGM既に再生中: ${resolvedId}`);
+                return;
+            }
+        } else {
+            stopAllBGM();
         }
-
-        stopAllBGM();
 
         const targetVolume = volume != null ? Math.min(1.0, Math.max(0.0, volume)) : BGM_VOLUME;
         audio.volume = targetVolume;
         audio.currentTime = 0;
         currentBGM = audio;
+        console.log(`[playBGM] BGM設定完了: resolvedId=${resolvedId}, volume=${targetVolume}, src=${audio.querySelector('source')?.src || 'なし'}`);
 
         // ファイル未存在時にフォールバック再生
         audio.addEventListener('error', function onError() {
@@ -194,7 +217,35 @@ function tryPlayAudio(audio, bgmId, retryDelayMs) {
  * エリアに応じたBGMを再生
  */
 function playAreaBGM(areaId) {
+    if (!areaId) {
+        console.warn('[playAreaBGM] areaIdが未定義です。デフォルトエリアを使用します。');
+        areaId = 'town_inside';
+    }
+    
+    // AREA_BGM_MAPが定義されているか確認
+    if (typeof AREA_BGM_MAP === 'undefined') {
+        console.error('[playAreaBGM] AREA_BGM_MAPが定義されていません');
+        return;
+    }
+    
     const bgmId = AREA_BGM_MAP[areaId] || 'bgm-field';
+    console.log(`[playAreaBGM] areaId=${areaId}, bgmId=${bgmId}`);
+    
+    // BGM要素が存在するか確認
+    const bgmElement = document.getElementById(bgmId);
+    if (!bgmElement) {
+        console.warn(`[playAreaBGM] BGM要素が見つかりません: ${bgmId}`);
+        // フォールバックを試行
+        if (typeof BGM_FALLBACK_MAP !== 'undefined' && BGM_FALLBACK_MAP[bgmId]) {
+            const fallbackId = BGM_FALLBACK_MAP[bgmId];
+            console.log(`[playAreaBGM] フォールバックを使用: ${bgmId} → ${fallbackId}`);
+            playBGM(fallbackId);
+        } else {
+            console.error(`[playAreaBGM] フォールバックも見つかりません: ${bgmId}`);
+        }
+        return;
+    }
+    
     playBGM(bgmId);
 }
 

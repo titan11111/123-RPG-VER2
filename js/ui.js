@@ -15,8 +15,88 @@ function updateStatus() {
     const expForLevel = nextLevelExp - currentLevelExp;
     const expPercent = expForLevel > 0 ? Math.floor((expInLevel / expForLevel) * 100) : 100;
     
-    document.getElementById('st-hp').innerText = `HP: ${hero.hp}/${hero.maxHp} | MP: ${hero.mp}/${hero.maxMp} | LV:${hero.lv} EXP:${currentExp}(${expPercent}%) | Gold: ${hero.gold}G | 鍵: ${hero.hasKey ? '持' : '無'}`; 
-    document.getElementById('st-party').innerText = `一行: [${hero.name}] ` + party.slice(1).map(m => m.name).join(", "); 
+    // nullチェックを追加
+    const stHp = document.getElementById('st-hp');
+    const stParty = document.getElementById('st-party');
+    
+    if (stHp) {
+        stHp.innerText = `HP: ${hero.hp}/${hero.maxHp} | MP: ${hero.mp}/${hero.maxMp} | LV:${hero.lv} EXP:${currentExp}(${expPercent}%) | Gold: ${hero.gold}G | 鍵: ${hero.hasKey ? '持' : '無'}`;
+    } else {
+        console.warn('[updateStatus] st-hp要素が見つかりません');
+    }
+    
+    if (stParty) {
+        stParty.innerText = `一行: [${hero.name}] ` + party.slice(1).map(m => m.name).join(", ");
+    } else {
+        console.warn('[updateStatus] st-party要素が見つかりません');
+    }
+    
+    // ステータスオーバーレイも更新（表示されている場合）
+    updateStatusOverlay();
+}
+
+/**
+ * ステータスオーバーレイを更新
+ */
+function updateStatusOverlay() {
+    const overlayHp = document.getElementById('status-overlay-hp');
+    const overlayParty = document.getElementById('status-overlay-party');
+    const overlayStats = document.getElementById('status-overlay-stats');
+    
+    if (!overlayHp || !overlayParty || !overlayStats) return;
+    
+    // 次のレベルまでの必要経験値を計算
+    const nextLevelExp = getRequiredExp(hero.lv + 1);
+    const currentExp = hero.exp;
+    const currentLevelExp = getRequiredExp(hero.lv);
+    const expInLevel = currentExp - currentLevelExp;
+    const expForLevel = nextLevelExp - currentLevelExp;
+    const expPercent = expForLevel > 0 ? Math.floor((expInLevel / expForLevel) * 100) : 100;
+    
+    // HP/MP情報
+    overlayHp.innerHTML = `
+        <div style="margin-bottom: 8px;"><strong>HP:</strong> ${hero.hp}/${hero.maxHp}</div>
+        <div style="margin-bottom: 8px;"><strong>MP:</strong> ${hero.mp}/${hero.maxMp}</div>
+        <div><strong>レベル:</strong> ${hero.lv}</div>
+    `;
+    
+    // パーティ情報
+    let partyText = `<div style="margin-bottom: 8px;"><strong>パーティ:</strong></div>`;
+    party.forEach((member, index) => {
+        const hpPercent = Math.floor((member.hp / member.maxHp) * 100);
+        partyText += `
+            <div style="margin-bottom: 6px; padding-left: 10px;">
+                ${index === 0 ? '【' : ''}${member.name}${index === 0 ? '】' : ''} - HP: ${member.hp}/${member.maxHp} (${hpPercent}%)
+            </div>
+        `;
+    });
+    overlayParty.innerHTML = partyText;
+    
+    // その他のステータス
+    overlayStats.innerHTML = `
+        <div style="margin-bottom: 8px;"><strong>経験値:</strong> ${currentExp} (${expPercent}%)</div>
+        <div style="margin-bottom: 8px;"><strong>ゴールド:</strong> ${hero.gold}G</div>
+        <div style="margin-bottom: 8px;"><strong>鍵:</strong> ${hero.hasKey ? '持っている' : '無し'}</div>
+        <div style="margin-bottom: 8px;"><strong>攻撃力:</strong> ${hero.atk}</div>
+        ${hero.mgc !== undefined ? `<div style="margin-bottom: 8px;"><strong>魔法力:</strong> ${hero.mgc}</div>` : ''}
+    `;
+}
+
+/**
+ * ステータスオーバーレイを表示/非表示
+ */
+function toggleStatusOverlay() {
+    const overlay = document.getElementById('status-overlay');
+    if (!overlay) return;
+    
+    if (overlay.style.display === 'flex') {
+        // 閉じる
+        overlay.style.display = 'none';
+    } else {
+        // 開く
+        updateStatusOverlay();
+        overlay.style.display = 'flex';
+    }
 }
 
 /**
@@ -31,8 +111,13 @@ function showScreen(id) {
     const gameContainer = document.getElementById('game-container');
     if (id === 'start-screen') {
         gameContainer.classList.add('start-screen-active');
+        gameContainer.classList.remove('main-screen-active');
+    } else if (id === 'main-screen') {
+        gameContainer.classList.add('main-screen-active');
+        gameContainer.classList.remove('start-screen-active');
     } else {
         gameContainer.classList.remove('start-screen-active');
+        gameContainer.classList.remove('main-screen-active');
     }
 }
 

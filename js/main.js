@@ -174,13 +174,30 @@ function handleB() {
         return;
     }
     
+    // カスタムダイアログが開いている場合は閉じる
+    const dialogOverlay = document.getElementById('custom-dialog-overlay');
+    if (dialogOverlay && dialogOverlay.style.display === 'flex') {
+        closeCustomDialog();
+        return;
+    }
+    
     // 魔法選択中はキャンセル
     if (gameState.isBattle && gameState.isSelectingMagic) {
         hideMagicList();
         gameState.isSelectingMagic = false;
         return;
     }
-    console.log("Bボタン");
+    
+    // メイン画面または戦闘画面でステータスオーバーレイを表示/非表示
+    const mainScreen = document.getElementById('main-screen');
+    const battleScreen = document.getElementById('battle-screen');
+    if ((mainScreen && mainScreen.classList.contains('active')) || 
+        (battleScreen && battleScreen.classList.contains('active'))) {
+        if (typeof toggleStatusOverlay === 'function') {
+            toggleStatusOverlay();
+        }
+        return;
+    }
 }
 
 /**
@@ -208,10 +225,20 @@ function startPrologue() {
         gameState.prologueStep++;
     } else {
         // プロローグ終了、ゲーム開始
+        if (typeof stopAllBGM === 'function') stopAllBGM();
         showScreen('main-screen');
         drawMap();
         updateStatus();
-        playAreaBGM(hero.currentArea);
+        // 音声コンテキストがアンロックされていることを確認してからBGMを再生
+        // プロローグBGMを確実に停止してから、少し待機してからエリアBGMを再生
+        setTimeout(() => {
+            // 初期エリアを設定（BGM再生制御用）
+            gameState.previousArea = hero.currentArea;
+            if (typeof playAreaBGM === 'function') {
+                console.log(`[startPrologue] エリアBGM再生開始: currentArea=${hero.currentArea}`);
+                playAreaBGM(hero.currentArea);
+            }
+        }, 300);
         showAlert("王様に頼まれ、冒険が始まった！");
         
         // メイン画面に遷移した後、復帰フラグをチェック（念のため）
@@ -308,6 +335,39 @@ function checkReturnFromOtherWorld() {
     }
 }
 
+/**
+ * フルスクリーン制御（iOS Safari対応）
+ */
+function enterFullscreen() {
+    const element = document.documentElement;
+    if (element.requestFullscreen) {
+        element.requestFullscreen().catch(err => {
+            console.log('フルスクリーンエラー:', err);
+        });
+    } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+    } else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen();
+    } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+    }
+}
+
+/**
+ * フルスクリーン解除
+ */
+function exitFullscreen() {
+    if (document.exitFullscreen) {
+        document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+    } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+    }
+}
+
 // ページ読み込み時の初期化
 window.addEventListener('load', function() {
     // 外部ゲームから復帰したかチェック
@@ -333,6 +393,9 @@ window.addEventListener('load', function() {
             }
         }, 500);
     }
+    
+    // iOS: 初回起動時にフルスクリーン化を試行（ユーザー操作が必要な場合がある）
+    // 注意: iOS SafariではフルスクリーンAPIが制限されているため、PWAとしてインストール推奨
     
     console.log('ゲーム初期化完了');
 });

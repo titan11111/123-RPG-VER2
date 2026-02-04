@@ -36,7 +36,9 @@ const TILE = {
     MANGO: 33,    // 🥭（上を通れる）
     COFFIN: 34,   // ⚰️（上を通れる）
     COBWEB: 35,   // 🕸️（上を通れる）
-    CANDLE: 36    // 🕯️（上を通れる）
+    CANDLE: 36,   // 🕯️（上を通れる）
+    WATER_SPIRIT: 37,  // 水の精霊（話すと戦闘）
+    FOREST_WITCH: 38   // 森の魔女（魔物の森の強敵・話すと戦闘）
 };
 
 const MAP_SIZE = {
@@ -71,7 +73,8 @@ const BGM_FALLBACK_MAP = {
     'bgm-lastboss': 'bgm-boss',
     'bgm-boss': 'bgm-battle',
     'bgm-catgod': 'bgm-boss',
-    'bgm-ending': 'bgm-title'
+    'bgm-ending': 'bgm-title',
+    'bgm-town': 'bgm-field'  // ポチの村のBGMが読み込めない場合のフォールバック
 };
 
 /** 画面・音声まわりの遅延（ms） */
