@@ -5,6 +5,10 @@
     <!-- iOS/レスポンシブ: 拡大防止・1画面収まる・ノッチ/ホームインジケータ余白は viewport-fit=cover + env(safe-area-inset-*) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#00008b">
+    <!-- PWA対応 -->
+    <link rel="manifest" href="manifest.json">
     <title>魔の山</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,19 +21,8 @@
     <!-- 壁から差し込む光（室内フィールド時のみ表示） -->
     <div id="light-through-wall" class="light-through-wall" aria-hidden="true"></div>
     <div id="start-screen" class="screen active">
-        <div class="ff-window">
-            <h1>LEGEND OF INUSARUKIGI</h1>
-            <p>仲間を集め、魔王を討て</p>
-            <p style="color: #ff0;"></p>
-            <p>【AボタンでオープニングBGM】</p>
-            <p>【もう一度Aでプロローグへ】</p>
-        </div>
-        <!-- オープニング用キャラ画像（犬・猿・キジ）：背景装飾のみ・他画面に影響しない -->
-        <div class="opening-characters" aria-hidden="true">
-            <img src="images/dog.png" alt="" class="opening-chara opening-chara-dog">
-            <img src="images/monky.png" alt="" class="opening-chara opening-chara-monkey">
-            <img src="images/kiji.png" alt="" class="opening-chara opening-chara-kiji">
-        </div>
+        <!-- 背景画像（モックアップ画像） -->
+        <img src="images/openingmokup.png" alt="" class="opening-background">
     </div>
 
     <div id="prologue-screen" class="screen">
@@ -41,15 +34,11 @@
     </div>
 
     <div id="main-screen" class="screen">
-        <div class="ff-window" style="margin-bottom:5px;">
+        <div class="ff-window" style="margin-bottom:4px;">
             <span id="area-title">場所</span>
         </div>
         <div id="map-grid"></div>
-        <div class="ff-window" style="width: 100%; text-align: left;">
-            <div id="st-hp">HP: 100/100</div>
-            <div id="st-party">一行: 勇者</div>
-        </div>
-        <div id="town-actions" style="display:none; margin-top: 10px;">
+        <div id="town-actions" style="display:none; margin-top: 4px;">
             <div class="ff-window">宿屋があります</div>
         </div>
     </div>
@@ -57,8 +46,8 @@
     <div id="battle-screen" class="screen">
         <div id="battle-log">魔物があらわれた！</div>
         <div class="enemy-area">
-            <div id="monster-sprite" class="monster-sprite"></div>
             <div id="monster-name">モンスター</div>
+            <div id="monster-sprite" class="monster-sprite"></div>
             <div id="enemy-hp-bar" class="enemy-hp-bar hp-bar-container" style="display:none;">
                 <div id="enemy-hp-bar-fill" class="hp-bar" style="width: 100%;"></div>
                 <div id="enemy-hp-bar-text" class="hp-bar-text">HP: 100/100</div>
@@ -95,6 +84,17 @@
             <div id="dialog-footer" style="font-size: 12px; color: #ccc;">[ Aボタンで閉じる ]</div>
         </div>
     </div>
+    
+    <!-- ステータス画面オーバーレイ（Bボタンで表示/非表示） -->
+    <div id="status-overlay" class="status-overlay">
+        <div class="ff-window status-overlay-content">
+            <h2 style="margin-top: 0; margin-bottom: 15px; text-align: center; font-size: 20px;">ステータス</h2>
+            <div id="status-overlay-hp" style="margin-bottom: 10px; line-height: 1.6;"></div>
+            <div id="status-overlay-party" style="margin-bottom: 10px; line-height: 1.6;"></div>
+            <div id="status-overlay-stats" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);"></div>
+            <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #ccc;">[ Bボタンで閉じる ]</div>
+        </div>
+    </div>
 </div>
 
 <!-- はい/いいえモーダル（#game-container 外・flex干渉防止） -->
@@ -118,6 +118,7 @@
 </audio>
 <audio id="bgm-town" loop preload="auto">
     <source src="audio/town.mp3" type="audio/mpeg">
+    <source src="audio/field.mp3" type="audio/mpeg">
 </audio>
 <audio id="bgm-field" loop preload="auto">
     <source src="audio/field.mp3" type="audio/mpeg">
@@ -154,13 +155,39 @@
 </div>
 
 <!-- JavaScriptファイルの読み込み -->
+<!-- 基本設定とゲーム状態 -->
 <script src="js/config.js"></script>
 <script src="js/gameState.js"></script>
+
+<!-- 音声管理 -->
 <script src="js/audio.js"></script>
 <script src="js/sfx.js"></script>
+
+<!-- UI管理 -->
 <script src="js/ui.js"></script>
-<script src="js/map.js"></script>
-<script src="js/battle.js"></script>
+
+<!-- SVG生成 -->
+<script src="js/sprites/svgGenerator.js"></script>
+
+<!-- マップ関連（依存関係順） -->
+<script src="js/map/allyManager.js"></script>
+<script src="js/map/movement.js"></script>
+<script src="js/map/tileEvents.js"></script>
+<script src="js/map/npcManager.js"></script>
+<script src="js/map/worldTransition.js"></script>
+<script src="js/map/mapRenderer.js"></script>
+
+<!-- 戦闘関連（依存関係順） -->
+<script src="js/battle/statusEffects.js"></script>
+<script src="js/battle/damageSystem.js"></script>
+<script src="js/battle/magicSystem.js"></script>
+<script src="js/battle/battleUI.js"></script>
+<script src="js/battle/battleCommands.js"></script>
+<script src="js/battle/battleTurns.js"></script>
+<script src="js/battle/battleInitializer.js"></script>
+<script src="js/battle/battleEnd.js"></script>
+
+<!-- メイン制御 -->
 <script src="js/main.js"></script>
 
 </body>
