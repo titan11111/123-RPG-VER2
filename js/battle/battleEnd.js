@@ -39,7 +39,7 @@
  * 水の精霊に勝利後の報酬選択（1:武器 2:レベル倍増 3:森へ行く）
  */
 function showWaterSpiritRewardMenu() {
-    const msg = "水の精霊が望みを叶えてくれた！\n\n1: 武器\n2: レベルが倍増\n3: 森へ行く";
+    const msg = "水の精霊が望みを叶えてくれた！\n\n1: 武器\n2: レベルが8上がる\n3: 森へ行く";
     const choice = prompt(msg + "\n\n番号を入力（1〜3）:");
     const map = worldMaps[hero.currentArea];
     const wx = hero.x;
@@ -51,7 +51,7 @@ function showWaterSpiritRewardMenu() {
         showAlert("精霊の剣を授かった！\n攻撃力が25上がった！");
     } else if (choice === "2") {
         const oldLv = hero.lv;
-        hero.lv = hero.lv * 2;
+        hero.lv = hero.lv + 8;
         const levelsGained = hero.lv - oldLv;
         hero.atk += (typeof LEVEL_UP !== 'undefined' ? LEVEL_UP.ATK_BONUS : 10) * levelsGained;
         hero.maxHp += (typeof LEVEL_UP !== 'undefined' ? LEVEL_UP.HP_BONUS : 20) * levelsGained;
@@ -62,7 +62,7 @@ function showWaterSpiritRewardMenu() {
             hero.mp = hero.maxMp;
         }
         if (typeof playSfxLevelUp === 'function') playSfxLevelUp();
-        showAlert(`レベルが倍増した！ LV${oldLv} → LV${hero.lv}\n攻撃力とHPが大きく上がった！`);
+        showAlert(`レベルが8上がった！ LV${oldLv} → LV${hero.lv}\n攻撃力とHPが大きく上がった！`);
     } else if (choice === "3") {
         if (map && map.data[wy] && map.data[wy][wx] === TILE.WATER_SPIRIT) {
             map.data[wy][wx] = TILE.EMPTY;

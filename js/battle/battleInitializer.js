@@ -40,8 +40,8 @@ function startBattle() {
     gameState.isBattle = true;
     gameState.isBattleEnding = false;
     
-    // 4%の確率で「レア猫がみさま」を出現
-    if (Math.random() < 0.04) {
+    // 3%の確率で「レア猫がみさま」を出現
+    if (Math.random() < 0.03) {
         gameState.currentEnemy = {
             name: "レア猫がみさま",
             hp: 2000,
@@ -102,7 +102,7 @@ function startAllyTrialBattle(tile) {
  */
 function startWaterSpiritBattle() {
     const count = gameState.waterSpiritDefeatCount || 0;
-    const hpBonus = 220 + count * 80;
+    const hpBonus = 220 + 500 + count * 80;
     const atkBonus = 28 + count * 6;
     const expBonus = 450 + count * 100;
     const goldBonus = 220 + count * 50;
@@ -158,7 +158,7 @@ function startBossBattle() {
     gameState.isBattleEnding = false;
     gameState.currentEnemy = { 
         name: "魔王", 
-        hp: 1000, 
+        hp: 1500, 
         atk: 60, 
         exp: 0, 
         gold: 0, 
@@ -196,7 +196,61 @@ function initBattle() {
     }
     
     if (isImage) {
-        spriteElement.innerHTML = `<img src="${enemy.img}" alt="${enemy.name}" onerror="console.error('[initBattle] 画像読み込みエラー:', this.src); this.style.display='none';" onload="console.log('[initBattle] 画像読み込み成功:', this.src);">`;
+        // iOS対応: 画像の読み込みを確実にするため、Imageオブジェクトで事前読み込み
+        const img = new Image();
+        // iOS対応: 日本語ファイル名をURLエンコード（iOS Safariで確実に読み込むため）
+        let imgSrc = enemy.img;
+        // パス部分とファイル名部分を分離してエンコード
+        const pathParts = imgSrc.split('/');
+        const fileName = pathParts.pop();
+        const encodedFileName = encodeURIComponent(fileName);
+        const encodedPath = pathParts.join('/') + '/' + encodedFileName;
+        
+        // 画像読み込み成功時
+        img.onload = function() {
+            console.log(`[initBattle] 画像読み込み成功: ${imgSrc}`);
+            spriteElement.innerHTML = '';
+            const displayImg = document.createElement('img');
+            // iOS対応: エンコードされたパスを使用
+            displayImg.src = encodedPath;
+            displayImg.alt = enemy.name;
+            displayImg.style.width = '100%';
+            displayImg.style.height = '100%';
+            displayImg.style.objectFit = 'contain';
+            displayImg.style.objectPosition = 'center center';
+            displayImg.style.display = 'block';
+            // iOS対応: 画像の読み込み属性を追加
+            displayImg.loading = 'eager';
+            displayImg.decoding = 'async';
+            // iOS対応: 画像が確実に表示されるように
+            displayImg.onerror = function() {
+                console.error(`[initBattle] 画像表示エラー（エンコード後）: ${encodedPath}`);
+                // エンコード前のパスで再試行
+                displayImg.src = imgSrc;
+                displayImg.onerror = function() {
+                    console.error(`[initBattle] 画像表示エラー（元のパス）: ${imgSrc}`);
+                    spriteElement.innerHTML = `<div style="font-size: 48px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; height: 100%;">${enemy.name}</div>`;
+                };
+            };
+            spriteElement.appendChild(displayImg);
+        };
+        
+        // 画像読み込みエラー時: エンコード前のパスで再試行
+        img.onerror = function() {
+            console.warn(`[initBattle] 画像読み込みエラー（エンコード後）: ${encodedPath}、元のパスで再試行: ${imgSrc}`);
+            // エンコード前のパスで再試行
+            img.src = imgSrc;
+            img.onerror = function() {
+                console.error(`[initBattle] 画像読み込みエラー（元のパス）: ${imgSrc}`);
+                spriteElement.innerHTML = `<div style="font-size: 48px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; height: 100%;">${enemy.name}</div>`;
+            };
+        };
+        
+        // 画像の読み込みを開始（iOS対応: エンコードされたパスから試行）
+        img.src = encodedPath;
+        
+        // 読み込み中の表示（既存の画像をクリア）
+        spriteElement.innerHTML = '<div style="font-size: 24px; color: #888; display: flex; align-items: center; justify-content: center; height: 100%;">読み込み中...</div>';
     } else {
         spriteElement.innerHTML = enemy.img;
     }
@@ -234,9 +288,13 @@ function initBattle() {
     const bossNames = ["オウサマニア", "桃仙人", "森の魔女"];
     const catGodName = "レア猫がみさま";
     const lastBossName = "魔王";
+    const waterSpiritName = "水の精霊";
     setTimeout(() => {
         if (enemy.name === lastBossName) {
             // ラスボス（魔王）専用BGM
+            playBGM('bgm-lastboss', 1.2);
+        } else if (enemy.name === waterSpiritName) {
+            // 水の精霊：魔王戦と同じBGM
             playBGM('bgm-lastboss', 1.2);
         } else if (enemy.name === catGodName) {
             // レア猫がみさま専用BGM
