@@ -82,8 +82,8 @@ function handleA() {
     // タイトル画面
     if (startScreen.classList.contains('active')) {
         // 復帰フラグがある場合はプロローグをスキップしてメインへ
-        const waitingForReturn = localStorage.getItem('rpgWaitingForReturn');
-        const savedState = localStorage.getItem('rpgSavedState');
+        const waitingForReturn = safeLocalStorageGetItem('rpgWaitingForReturn');
+        const savedState = safeLocalStorageGetItem('rpgSavedState');
         if (waitingForReturn === 'true' && savedState) {
             if (typeof stopAllBGM === 'function') stopAllBGM();
             showScreen('main-screen');
@@ -275,7 +275,7 @@ function startNiseousamaBattle() {
     gameState.isBattleEnding = false;
     gameState.currentEnemy = { 
         name: "オウサマニア", 
-        hp: 1200, 
+        hp: 3200, 
         atk: 70, 
         exp: 0, 
         gold: 0, 
@@ -308,8 +308,8 @@ document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { pa
 // 外部ゲームから復帰したかチェック
 function checkReturnFromOtherWorld() {
     // localStorageで復帰を検出
-    const waitingForReturn = localStorage.getItem('rpgWaitingForReturn');
-    const savedState = localStorage.getItem('rpgSavedState');
+    const waitingForReturn = safeLocalStorageGetItem('rpgWaitingForReturn');
+    const savedState = safeLocalStorageGetItem('rpgSavedState');
     
     // 復帰処理を実行する条件：フラグ'true'かつ保存状態あり
     if (waitingForReturn !== 'true' || !savedState) return;
@@ -372,6 +372,14 @@ function exitFullscreen() {
 window.addEventListener('load', function() {
     // 外部ゲームから復帰したかチェック
     checkReturnFromOtherWorld();
+    
+    // iOS対応: 画像プリロード（バックグラウンドで実行）
+    if (typeof preloadAllGameImages === 'function') {
+        preloadAllGameImages().catch(error => {
+            console.error('画像プリロードエラー:', error);
+        });
+    }
+    
     // iOS Safari対応: ページ読み込み時に音声コンテキストをアンロック試行
     // ユーザー操作がないと実際にはアンロックされないが、準備はしておく
     if (typeof unlockAudioContext === 'function') {
@@ -398,6 +406,125 @@ window.addEventListener('load', function() {
     // 注意: iOS SafariではフルスクリーンAPIが制限されているため、PWAとしてインストール推奨
     
     console.log('ゲーム初期化完了');
+});
+
+/**
+ * iOS対応: オリエンテーション変更時の処理
+ * 画面回転時にマップを再描画し、画面サイズを再調整
+ */
+window.addEventListener('orientationchange', function() {
+    console.log('画面の向きが変更されました');
+    
+    // iOSでは orientationchange の後に実際のサイズ変更が反映されるまで少し遅延があるため、
+    // 少し待ってから再描画を行う
+    setTimeout(() => {
+        // メイン画面が表示されている場合はマップを再描画
+        const mainScreen = document.getElementById('main-screen');
+        if (mainScreen && mainScreen.classList.contains('active')) {
+            if (typeof drawMap === 'function') {
+                drawMap();
+            }
+            if (typeof updateStatus === 'function') {
+                updateStatus();
+            }
+        }
+        
+        // 戦闘画面が表示されている場合はUIを更新
+        const battleScreen = document.getElementById('battle-screen');
+        if (battleScreen && battleScreen.classList.contains('active')) {
+            if (typeof updateBattleStatus === 'function') {
+                updateBattleStatus();
+            }
+        }
+    }, 100);
+});
+
+/**
+ * iOS対応: リサイズ時の処理（URLバー表示/非表示対応）
+ * iOS SafariではURLバーの表示/非表示で window.innerHeight が変動する
+ */
+window.addEventListener('resize', function() {
+    // リサイズ時に画面サイズを再調整
+    // メイン画面が表示されている場合はマップを再描画
+    const mainScreen = document.getElementById('main-screen');
+    if (mainScreen && mainScreen.classList.contains('active')) {
+        // リサイズは頻繁に発生するため、デバウンス処理
+        clearTimeout(window.resizeTimeout);
+        window.resizeTimeout = setTimeout(() => {
+            if (typeof drawMap === 'function') {
+                drawMap();
+            }
+        }, 150);
+    }
+});
+
+/**
+ * iOS対応: ページ表示/非表示時の処理
+ * バックグラウンドに移行したときにゲームを一時停止し、BGMを停止
+ */
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        // ページが非表示（バックグラウンド）になったとき
+        console.log('ゲームがバックグラウンドに移行しました');
+        
+        // BGMを停止
+        if (typeof stopAllBGM === 'function') {
+            stopAllBGM();
+        }
+        
+        // ゲーム状態を一時停止フラグで管理（必要に応じて拡張可能）
+        gameState.isPaused = true;
+    } else {
+        // ページが表示（フォアグラウンド）に戻ったとき
+        console.log('ゲームがフォアグラウンドに戻りました');
+        
+        // 一時停止フラグを解除
+        gameState.isPaused = false;
+        
+        // 現在の画面に応じてBGMを再開
+        const startScreen = document.getElementById('start-screen');
+        const prologueScreen = document.getElementById('prologue-screen');
+        const mainScreen = document.getElementById('main-screen');
+        const battleScreen = document.getElementById('battle-screen');
+        
+        if (startScreen && startScreen.classList.contains('active')) {
+            // タイトル画面: タイトルBGMを再生
+            if (typeof playBGM === 'function') {
+                setTimeout(() => {
+                    playBGM('bgm-title');
+                }, 300);
+            }
+        } else if (prologueScreen && prologueScreen.classList.contains('active')) {
+            // プロローグ画面: プロローグBGMを再生
+            if (typeof playBGM === 'function') {
+                setTimeout(() => {
+                    playBGM('bgm-prologue');
+                }, 300);
+            }
+        } else if (mainScreen && mainScreen.classList.contains('active')) {
+            // メイン画面: エリアBGMを再生
+            if (typeof playAreaBGM === 'function') {
+                setTimeout(() => {
+                    playAreaBGM(hero.currentArea);
+                }, 300);
+            }
+        } else if (battleScreen && battleScreen.classList.contains('active')) {
+            // 戦闘画面: 戦闘BGMを再生（敵に応じて）
+            if (typeof playBGM === 'function' && gameState.currentEnemy) {
+                setTimeout(() => {
+                    // ボス戦かどうかでBGMを切り替え
+                    const isBoss = gameState.currentEnemy.name === '魔王' || 
+                                   gameState.currentEnemy.name === 'オウサマニア' ||
+                                   gameState.currentEnemy.isRareCatGod;
+                    if (isBoss) {
+                        playBGM('bgm-boss');
+                    } else {
+                        playBGM('bgm-battle');
+                    }
+                }, 300);
+            }
+        }
+    }
 });
 
 document.addEventListener('touchstart', ensureAudioUnlockAndMaybePlayTitleBGM, { once: true });
