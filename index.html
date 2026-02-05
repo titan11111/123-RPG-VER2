@@ -9,11 +9,31 @@
     <meta name="theme-color" content="#00008b">
     <!-- PWA対応 -->
     <link rel="manifest" href="manifest.json">
-    <title>魔の山</title>
+    <title>LEGEND OF INUSARUKIGI
+    </title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <!-- CSSファイル（分割版） -->
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <!-- マップ関連（分割版） -->
+    <link rel="stylesheet" href="css/map-grid.css">
+    <link rel="stylesheet" href="css/map-fields.css">
+    <link rel="stylesheet" href="css/map-cells-base.css">
+    <link rel="stylesheet" href="css/map-cells-objects.css">
+    <link rel="stylesheet" href="css/map-animations.css">
+    <!-- 戦闘関連（分割版） -->
+    <link rel="stylesheet" href="css/battle-screen.css">
+    <link rel="stylesheet" href="css/battle-ui.css">
+    <link rel="stylesheet" href="css/battle-log.css">
+    <link rel="stylesheet" href="css/battle-responsive.css">
+    <link rel="stylesheet" href="css/battle-effects.css">
+    <link rel="stylesheet" href="css/controls.css">
+    <!-- 魔法エフェクト（分割版） -->
+    <link rel="stylesheet" href="css/magic-effects-base.css">
+    <link rel="stylesheet" href="css/magic-effects-attack.css">
+    <link rel="stylesheet" href="css/magic-effects-shield.css">
 </head>
 <body>
 
@@ -29,7 +49,7 @@
         <div class="ff-window">
             <div style="font-size: 160px; margin-bottom: 20px;">🕴️</div>
             <p id="prologue-text">「わしは王様じゃ。えっと、、、お主は？」</p>
-            <p>【Aボタンで名前を教える】</p>
+            <p></p>
         </div>
     </div>
 
@@ -74,7 +94,7 @@
             <h1 id="ending-title">HAPPY ENDING</h1>
             <p id="ending-msg">仲間と共に世界を救った！</p>
             <p>平和な日々が戻ってきた...</p>
-            <p>【Aボタンでタイトルへ】</p>
+            <p></p>
         </div>
     </div>
 
@@ -157,7 +177,9 @@
 <!-- JavaScriptファイルの読み込み -->
 <!-- 基本設定とゲーム状態 -->
 <script src="js/config.js"></script>
+<!-- ゲーム状態とデータ -->
 <script src="js/gameState.js"></script>
+<script src="js/gameData.js"></script>
 
 <!-- 音声管理 -->
 <script src="js/audio.js"></script>
@@ -166,8 +188,11 @@
 <!-- UI管理 -->
 <script src="js/ui.js"></script>
 
-<!-- SVG生成 -->
-<script src="js/sprites/svgGenerator.js"></script>
+<!-- SVG生成（分割版） -->
+<script src="js/sprites/villagers.js"></script>
+<script src="js/sprites/allies.js"></script>
+<script src="js/sprites/buildings.js"></script>
+<script src="js/sprites/special.js"></script>
 
 <!-- マップ関連（依存関係順） -->
 <script src="js/map/allyManager.js"></script>
