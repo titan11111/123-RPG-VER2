@@ -40,7 +40,7 @@
  */
 function handleGoldenCatEvent(x, y, map) {
     // クリア済みかどうかをチェック
-    const goldenCatCleared = localStorage.getItem('rpgGoldenCatCleared');
+    const goldenCatCleared = safeLocalStorageGetItem('rpgGoldenCatCleared');
     const isCleared = goldenCatCleared === 'true';
     
     // 既に処理済みで、かつクリア済みでない場合はスキップ
@@ -137,8 +137,8 @@ function transferToOtherWorld() {
             hasKey: hero.hasKey
         }
     };
-    localStorage.setItem('rpgSavedState', JSON.stringify(savedState));
-    localStorage.setItem('rpgWaitingForReturn', 'true');
+    safeLocalStorageSetItem('rpgSavedState', JSON.stringify(savedState));
+    safeLocalStorageSetItem('rpgWaitingForReturn', 'true');
     gameState.goldenCatProcessed = true;
     
     // メッセージ表示
@@ -196,9 +196,9 @@ function playMysteriousSound(duration) {
  */
 function returnFromOtherWorld() {
     // 保存された状態を復元
-    const savedStateStr = localStorage.getItem('rpgSavedState');
-    const waitingForReturn = localStorage.getItem('rpgWaitingForReturn');
-    const goldenCatCleared = localStorage.getItem('rpgGoldenCatCleared');
+    const savedStateStr = safeLocalStorageGetItem('rpgSavedState');
+    const waitingForReturn = safeLocalStorageGetItem('rpgWaitingForReturn');
+    const goldenCatCleared = safeLocalStorageGetItem('rpgGoldenCatCleared');
     
     // 復帰処理を実行する前に、ゲームが実際に開始されているか確認
     const mainScreen = document.getElementById('main-screen');
@@ -212,9 +212,9 @@ function returnFromOtherWorld() {
             }, 500);
         } else {
             // メイン画面が存在しない場合は、フラグをクリアして終了
-            localStorage.removeItem('rpgSavedState');
-            localStorage.removeItem('rpgWaitingForReturn');
-            localStorage.removeItem('rpgGoldenCatCleared');
+            safeLocalStorageRemoveItem('rpgSavedState');
+            safeLocalStorageRemoveItem('rpgWaitingForReturn');
+            safeLocalStorageRemoveItem('rpgGoldenCatCleared');
         }
         return;
     }
@@ -276,8 +276,8 @@ function returnFromOtherWorld() {
             }
             
             // フラグをクリア（ただし、クリア済みフラグは保持して、次回の復帰時にクリア済みであることを示す）
-            localStorage.removeItem('rpgSavedState');
-            localStorage.removeItem('rpgWaitingForReturn');
+            safeLocalStorageRemoveItem('rpgSavedState');
+            safeLocalStorageRemoveItem('rpgWaitingForReturn');
             // rpgGoldenCatClearedは保持（次回の復帰時にクリア済みであることを示すため）
             
             // マップを再描画
@@ -286,9 +286,9 @@ function returnFromOtherWorld() {
             playAreaBGM(hero.currentArea);
         } catch (e) {
             console.error('状態の復元に失敗しました:', e);
-            localStorage.removeItem('rpgSavedState');
-            localStorage.removeItem('rpgWaitingForReturn');
-            localStorage.removeItem('rpgGoldenCatCleared');
+            safeLocalStorageRemoveItem('rpgSavedState');
+            safeLocalStorageRemoveItem('rpgWaitingForReturn');
+            safeLocalStorageRemoveItem('rpgGoldenCatCleared');
         }
     }
 }
